@@ -1,0 +1,71 @@
+<doctype html>
+<html lang="en">
+
+<head>
+	
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+	<link rel="stylesheet" href="../../css/bootstrap.min.css">
+
+	<style>
+		<link rel="shortcut icon" type="image/x-icon"/>
+	</style>
+    <title>Cross compile cgo from Linux to Windows</title>
+</head>
+<body>
+  <div class="container ">
+    <h1 class="display-4">Cross compile cgo from Linux to Windows</h1> 
+  <hr>
+
+  <p>I started using Go with Cgo to use SDL to make a basic Snake game. I used the SDL-Go bindings provided by veandco. 
+  <br>
+Now that the game is done, how do I get it running on Windows?
+
+Go has amazing cross-compiling options for Go-only code where changing GOOS="windows" - just works but this gets icky when using Cgo.
+
+Cross compiling to Windows from Linux poses two problems:
+
+Linux to Windows cross compiler is required.
+Windows based 'devel' headers  are required. These headers should be compatible with the cross-compiler. 
+Solution:
+mingw-w64 is 64-bit GCC on Windows, it works as a cross-compiler on Linux. Available on most Linux distributions.
+mingw compatible development headers for SDL is officially provided for SDL Core and its extension libraries. Copy the x86_64 and i686 folders to /usr/ (Or wherever your distribution stores mingw-w64 specific libraries.
+Required flags for cross-compile:
+Paths are for ArchLinux, use your system specific paths
+<br>
+<code>
+CGO_ENABLED="1"
+CC="/usr/bin/x86_64-w64-mingw32-gcc"
+GOOS="windows"
+CGO_LDFLAGS="-lmingw32 -L/usr/x86_64-w64-mingw32/lib -lSDL2main -lSDL2"
+CGO_CFLAGS="-I/usr/x86_64-w64-mingw32/include/SDL2 -D_REENTRANT" 
+</code>
+Followed by "go build snake.go"
+
+
+Full command: 
+env CGO_ENABLED="1" CC="/usr/bin/x86_64-w64-mingw32-gcc" GOOS="windows" CGO_LDFLAGS="-lmingw32 -L/usr/x86_64-w64-mingw32/lib -lSDL2main -lSDL2" CGO_CFLAGS="-I/usr/x86_64-w64-mingw32/include/SDL2 -D_REENTRANT" go build -x -i -v snake.go
+Explanation of Flags
+Remember, Cgo is disabled by default while cross-compiling. 
+As per official docs, you can permanently set CC_FOR_TARGET="/usr/bin/x86_64-w64-mingw32-gcc" or just change your CC for that specific command.
+GOOS="windows" tells go to cross compile. 
+Mingw-w64 requires the "-lmingw32" to work properly. SDL configs can be found by running "sdl2-config --libs", change path to mingw-w64. "-lSDL2main" is requirement for SDL2 on Windows.
+Run "sdl2-config --cflags" and change the path to mingw-w64.
+Your code should successfully compile and create snake.exe. Copy the .dlls found in /bin/ folder in the tarballs you downloaded from the official site beside the game.
+
+Depending what features of SDL you used your game folder should look similar to the following when given "ls":
+
+libfreetype-6.dll*  LICENSE.freetype.txt  LICENSE.zlib.txt  SDL2.dll*  SDL2_ttf.dll*  snake.exe*  font.ttf  zlib1.dll*
+
+Your game now works on Windows.
+
+Compatibility:
+mingw is the officially supported Cgo compiler on Windows, so I presume all cross compiled programs should run fine.
+
+My system specs:
+Go 1.9.1, Archlinux x64, x86_64-w64-mingw32 targetting GCC 7.2</p>
+  </div>
+</body>
+
+</html>
+
